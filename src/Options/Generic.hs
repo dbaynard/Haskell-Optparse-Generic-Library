@@ -259,6 +259,8 @@ import qualified Options.Applicative       as Options
 import qualified Options.Applicative.Types as Options
 import qualified Text.Read
 
+import Data.Tagged (Tagged(..))
+
 #if MIN_VERSION_base(4,7,0)
 import GHC.TypeLits
 #else
@@ -408,6 +410,9 @@ instance ParseField Data.Time.Calendar.Day where
         runReadS [(day, "")] = Right day
         runReadS _           = Left "expected YYYY-MM-DD"
 
+instance ParseField a => ParseField (Tagged (r :: k) a) where
+    parseField h f = Tagged <$> parseField h f
+
 {-| A class for all types that can be parsed from zero or more arguments/options
     on the command line
 
@@ -479,6 +484,8 @@ instance ParseField a => ParseFields [a] where
 
 instance ParseField a => ParseFields (NonEmpty a) where
     parseFields h m = (:|) <$> parseField h m <*> parseListOfField h m
+
+instance (ParseField a, ParseFields a) => ParseFields (Tagged (r :: k) a)
 
 {-| Use this to annotate a field with a type-level string (i.e. a `Symbol`)
     representing the help description for that field:
@@ -595,6 +602,8 @@ instance ParseField a => ParseRecord [a] where
 
 instance ParseField a => ParseRecord (NonEmpty a) where
     parseRecord = fmap getOnly parseRecord
+
+instance (ParseField a, ParseFields a) => ParseRecord (Tagged (r :: k) a)
 
 instance (ParseFields a, ParseFields b) => ParseRecord (a, b)
 instance (ParseFields a, ParseFields b, ParseFields c) => ParseRecord (a, b, c)
